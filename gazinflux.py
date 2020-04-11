@@ -5,6 +5,7 @@ import os
 import sys
 import datetime
 import locale
+import math
 from dateutil.relativedelta import relativedelta
 from influxdb import InfluxDBClient
 import gazpar
@@ -65,7 +66,7 @@ def _openParams(pfile):
 
 # Sub to get StartDate depending today - daysNumber
 def _getStartDate(today, daysNumber):
-    return _dayToStr(today - relativedelta(days=daysNumber))
+    return today - relativedelta(days=daysNumber)
 
 # Get the midnight timestamp for startDate
 def _getStartTS(daysNumber):
@@ -130,15 +131,19 @@ if __name__ == "__main__":
         startDate = _getStartDate(datetime.date.today(), args.days)
         firstTS =  _getStartTS(args.days)
 
-    endDate = _dayToStr(datetime.date.today())
-    logging.info("will use %s as startDate and %s as endDate", _dayToStr(startDate), endDate)
+    endDate = datetime.date.today()
+
+    periodWanted = endDate - startDate
+    if periodWanted.days > 12:
+        logging.info("more than 12 days (%d) are wanted, I will need to make %d calls to GRDF to get all data", periodWanted.days, math.ceil(periodWanted.days/12)) 
+
+    logging.info("will use %s as startDate and %s as endDate", _dayToStr(startDate), _dayToStr(endDate))
 
     # Try to get data from GRDF API
-    resGrdf = gazpar.get_data_per_day(token, startDate, endDate)
     try:
         logging.info("get Data from GRDF from {0} to {1}".format(startDate, endDate))
         # Get result from GRDF by day
-        resGrdf = gazpar.get_data_per_day(token, startDate, endDate)
+        resGrdf = gazpar.get_data_per_day(token, _dayToStr(startDate), _dayToStr(endDate))
 
         if (args.verbose):
             pp.pprint(resGrdf)
