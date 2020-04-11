@@ -79,7 +79,7 @@ def _getStartDateInfluxDb(client,measurement):
     result = client.query("SELECT * from " + measurement + " ORDER BY time DESC LIMIT 1")
     try:
         data = list(result.get_points())
-        return datetime.datetime.strptime(data[0]['time'], '%Y-%m-%dT%H:%M:%SZ') + relativedelta(days=1)
+        return (datetime.datetime.strptime(data[0]['time'], '%Y-%m-%dT%H:%M:%SZ') + relativedelta(days=1)).date()
     except:
         logging.error("There is no data in '%s' database on host %s", params['influx']['db'], params['influx']['host'])
 
@@ -136,7 +136,6 @@ if __name__ == "__main__":
         firstTS =  _getStartTS(args.days)
 
     endDate = datetime.date.today()
-
     periodWanted = endDate - startDate
     nbCallsToMake = math.ceil(periodWanted.days/12)
     if periodWanted.days > 12:
