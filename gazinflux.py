@@ -6,6 +6,7 @@ import sys
 import datetime
 import locale
 import math
+from itertools import chain, groupby
 from dateutil.relativedelta import relativedelta
 from influxdb import InfluxDBClient
 import gazpar
@@ -134,20 +135,30 @@ if __name__ == "__main__":
     endDate = datetime.date.today()
 
     periodWanted = endDate - startDate
+    nbCallsToMake = math.ceil(periodWanted.days/12)
     if periodWanted.days > 12:
         logging.info("more than 12 days (%d) are wanted, I will need to make %d calls to GRDF to get all data", periodWanted.days, math.ceil(periodWanted.days/12)) 
 
     logging.info("will use %s as startDate and %s as endDate", _dayToStr(startDate), _dayToStr(endDate))
 
     # Try to get data from GRDF API
+    resGrdf = []
     try:
-        logging.info("get Data from GRDF from {0} to {1}".format(startDate, endDate))
-        # Get result from GRDF by day
-        resGrdf = gazpar.get_data_per_day(token, _dayToStr(startDate), _dayToStr(endDate))
+        startDateDownload = startDate
+        endDateDownload = startDateDownload + relativedelta(days=12)
+        for _ in range(nbCallsToMake):
+            if endDateDownload > endDate:
+                endDateDownload = endDate
+            logging.info("get Data from GRDF from {0} to {1}".format(
+                startDateDownload, endDateDownload))
+            # Get result from GRDF by day
+            resGrdf.append(gazpar.get_data_per_day(token, _dayToStr(startDateDownload), _dayToStr(endDateDownload)))
 
-        if (args.verbose):
-            pp.pprint(resGrdf)
-
+            if (args.verbose):
+                pp.pprint(resGrdf)
+            
+            startDateDownload = startDateDownload + relativedelta(days=12)
+            endDateDownload = endDateDownload + relativedelta(days=12)
     except:
         logging.error("unable to get data from GRDF")
         sys.exit(1)
@@ -155,7 +166,7 @@ if __name__ == "__main__":
     # When we have all values let's start parse data and pushing it
     jsonInflux = []
     i = 0
-    for d in resGrdf:
+    for d in chain.from_iterable(resGrdf):
         t = datetime.datetime.strptime(d['date'] + " 12:00", '%d-%m-%Y %H:%M')
         logging.info(("found value : {0:3} kWh / {1:7.2f} m3 at {2}").format(d['kwh'], d['mcube'], t.strftime('%Y-%m-%dT%H:%M:%SZ')))
         if t.timestamp() >= firstTS:
