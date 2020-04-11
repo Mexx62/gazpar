@@ -82,7 +82,6 @@ def _getStartDateInfluxDb(client,measurement):
         return datetime.datetime.strptime(data[0]['time'], '%Y-%m-%dT%H:%M:%SZ') + relativedelta(days=1)
     except:
         logging.error("There is no data in '%s' database on host %s", params['influx']['db'], params['influx']['host'])
-        sys.exit(1)
 
 # Let's start here !
 
@@ -123,10 +122,14 @@ if __name__ == "__main__":
     if args.last:
         logging.info("looking for last value date on InfluxDB 'conzo_gaz' on host %s...", params['influx']['host'])
         startDate = _getStartDateInfluxDb(client,"conso_gaz")
+        if not startDate:
+            logging.info('I will get the first date on GRDF portal')
+            startDate = datetime.datetime.strptime(gazpar.get_start_date(token), "%d/%m/%Y").date()
+            logging.info('found %s', startDate)
         startDateString = _dayToStr(startDate)
         logging.info("found last fetch date %s on InfluxDB 'conzo_gaz' on host %s...",
                      startDateString, params['influx']['host'])
-        firstTS =  startDate.timestamp()
+        firstTS = datetime.datetime.combine(startDate,datetime.time(12,0,0)).timestamp()
     else :
         logging.warn("GRDF will perhaps has not all data for the last %s days ",args.days)
         startDate = _getStartDate(datetime.date.today(), args.days)

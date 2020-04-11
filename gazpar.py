@@ -31,6 +31,7 @@ import xml.etree.ElementTree as ElementTree
 import io
 import json
 import datetime
+import pprint
 
 global JAVAVXS
 
@@ -348,3 +349,85 @@ def _get_data(session, resource_id, start_date=None, end_date=None):
         sys.exit(os.EX_SOFTWARE)
 
     return res
+
+def get_start_date(session):
+    """Gets the first day with data on GRDF Portal."""
+    global JAVAVXS
+
+    session.headers = {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Mobile Safari/537.36',
+        'Accept-Language': 'fr,fr-FR;q=0.8,en;q=0.6',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept': 'application/xml, application/json, text/javascript, */*; q=0.01',
+        'Faces-Request': 'partial/ajax',
+        'Origin': 'https://monespace.grdf.fr',
+        'Referer': 'https://monespace.grdf.fr/monespace/particulier/consommation/tableau-de-bord',
+        'X-Requested-With': 'XMLHttpRequest'}
+
+    payload = {
+        'javax.faces.partial.ajax': 'true',
+        'javax.faces.source': '_eConsosynthese_WAR_eConsoportlet_:j_idt5:j_idt43',
+        'javax.faces.partial.execute': '_eConsosynthese_WAR_eConsoportlet_:j_idt5:j_idt43',
+        'javax.faces.partial.render': '_eConsosynthese_WAR_eConsoportlet_:j_idt5',
+        'javax.faces.behavior.event': 'click',
+        'javax.faces.partial.event': 'click',
+        '_eConsosynthese_WAR_eConsoportlet_': 'j_idt5:_eConsosynthese_WAR_eConsoportlet_:j_idt5',
+        'javax.faces.encodedURL': 'https://monespace.grdf.fr/web/guest/monespace/particulier/consommation/tableau-de-bord?p_p_id=eConsosynthese_WAR_eConsoportlet&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&p_p_cacheability=cacheLevelPage&p_p_col_id=column-3&p_p_col_count=5&p_p_col_pos=1&_eConsosynthese_WAR_eConsoportlet__jsfBridgeAjax=true&_eConsosynthese_WAR_eConsoportlet__facesViewIdResource=%2Fviews%2Fcompteur%2Fsynthese%2FsyntheseViewMode.xhtml',
+        'javax.faces.ViewState': JAVAVXS}
+
+    params = {
+        'p_p_id': 'eConsosynthese_WAR_eConsoportlet',
+        'p_p_lifecycle': '2',
+        'p_p_state': 'normal',
+        'p_p_mode': 'view',
+        'p_p_cacheability': 'cacheLevelPage',
+        'p_p_col_id': 'column-3',
+        'p_p_col_count': '5',
+        'p_p_col_pos': '1',
+        '_eConsosynthese_WAR_eConsoportlet__jsfBridgeAjax': 'true',
+        '_eConsosynthese_WAR_eConsoportlet__facesViewIdResource': '/views/compteur/synthese/syntheseViewMode.xhtml'}
+
+    r = session.get(
+        'https://monespace.grdf.fr/monespace/particulier/consommation/consommations', allow_redirects=False)
+
+    parser = etree.HTMLParser()
+    tree = etree.parse(io.StringIO(r.text), parser)
+    value = tree.xpath(
+        "//div[@id='_eConsoconsoDetaille_WAR_eConsoportlet_']/form[@id='_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille']/input[@id='javax.faces.ViewState']/@value")
+
+    JAVAVXS = value
+
+    payload = {
+        'javax.faces.partial.ajax': 'true',
+        'javax.faces.source': '_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille:j_idt139',
+        'javax.faces.partial.execute': '_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille:j_idt139',
+        'javax.faces.partial.render': '_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille',
+        'javax.faces.behavior.event': 'click',
+        'javax.faces.partial.event': 'click',
+        '_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille': '_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille',
+        'javax.faces.encodedURL': 'https://monespace.grdf.fr/web/guest/monespace/particulier/consommation/consommations?p_p_id=eConsoconsoDetaille_WAR_eConsoportlet&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&p_p_cacheability=cacheLevelPage&p_p_col_id=column-3&p_p_col_count=7&p_p_col_pos=2&_eConsoconsoDetaille_WAR_eConsoportlet__jsfBridgeAjax=true&_eConsoconsoDetaille_WAR_eConsoportlet__facesViewIdResource=%2Fviews%2Fconso%2Fdetaille%2FconsoDetailleViewMode.xhtml',
+        'javax.faces.ViewState': JAVAVXS
+    }
+
+    params = {
+        'p_p_id': 'eConsoconsoDetaille_WAR_eConsoportlet',
+        'p_p_lifecycle': '2',
+        'p_p_state': 'normal',
+        'p_p_mode': 'view',
+        'p_p_cacheability': 'cacheLevelPage',
+        'p_p_col_id': 'column-3',
+        'p_p_col_count': '7',
+        'p_p_col_pos': '2',
+        '_eConsoconsoDetaille_WAR_eConsoportlet__jsfBridgeAjax': 'true',
+        '_eConsoconsoDetaille_WAR_eConsoportlet__facesViewIdResource': '/views/conso/detaille/consoDetailleViewMode.xhtml'
+    }
+
+    session.cookies['KPISavedRef'] = 'https://monespace.grdf.fr/monespace/particulier/consommation/consommations'
+
+    req = session.post('https://monespace.grdf.fr/monespace/particulier/consommation/consommations',
+                       allow_redirects=False, data=payload, params=params)
+
+    tree = etree.parse(io.StringIO(req.text), parser)
+    firstDateElement = tree.xpath("//*[@id='_eConsoconsoDetaille_WAR_eConsoportlet_:idFormConsoDetaille:idDateDebutConsoDetaille']")#.attrib['value']
+    firstDate = firstDateElement[0].get('value')
+    return firstDate
