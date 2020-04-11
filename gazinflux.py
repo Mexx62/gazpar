@@ -80,10 +80,14 @@ def _getDateTS(y,mo,d,h,m):
 # Get startDate with influxDB lastdate +1
 def _getStartDateInfluxDb(client,measurement):
     result = client.query("SELECT * from " + measurement + " ORDER BY time DESC LIMIT 1")
-    data = list(result.get_points())
-    datar = data[0]['time'].split('T')
-    datarr = datar[0].split('-')
-    return datarr
+    try:
+        data = list(result.get_points())
+        datar = data[0]['time'].split('T')
+        datarr = datar[0].split('-')
+        return datarr
+    except:
+        logging.error("There is no data in '%s' database on host %s", params['influx']['db'], params['influx']['host'])
+        sys.exit(1)
 
 # Let's start here !
 
