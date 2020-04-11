@@ -130,8 +130,8 @@ if __name__ == "__main__":
         startDate = _getStartDate(datetime.date.today(), args.days)
         firstTS =  _getStartTS(args.days)
 
-    logging.info("will use %s as firstDate and %s as startDate", firstTS, startDate)
     endDate = _dayToStr(datetime.date.today())
+    logging.info("will use %s as startDate and %s as endDate", _dayToStr(startDate), endDate)
 
     # Try to get data from GRDF API
     resGrdf = gazpar.get_data_per_day(token, startDate, endDate)
