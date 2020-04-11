@@ -72,19 +72,12 @@ def _getStartTS(daysNumber):
     date = (datetime.datetime.now().replace(hour=12,minute=0,second=0,microsecond=0) - relativedelta(days=daysNumber))
     return date.timestamp()
 
-# Get the timestamp for calculating if we are in HP / HC
-def _getDateTS(y,mo,d,h,m):
-    date = (datetime.datetime(year=y,month=mo,day=d,hour=h,minute=m,second=0,microsecond=0))
-    return date.timestamp()
-
 # Get startDate with influxDB lastdate +1
 def _getStartDateInfluxDb(client,measurement):
     result = client.query("SELECT * from " + measurement + " ORDER BY time DESC LIMIT 1")
     try:
         data = list(result.get_points())
-        datar = data[0]['time'].split('T')
-        datarr = datar[0].split('-')
-        return datarr
+        return datetime.datetime.strptime(data[0]['time'], '%Y-%m-%dT%H:%M:%SZ') + relativedelta(days=1)
     except:
         logging.error("There is no data in '%s' database on host %s", params['influx']['db'], params['influx']['host'])
         sys.exit(1)
@@ -128,9 +121,10 @@ if __name__ == "__main__":
     if args.last:
         logging.info("looking for last value date on InfluxDB 'conzo_gaz' on host %s...", params['influx']['host'])
         startDate = _getStartDateInfluxDb(client,"conso_gaz")
-        logging.info("found last fetch date %s on InfluxDB 'conzo_gaz' on host %s...", startDate[2]+"/"+startDate[1]+"/"+startDate[0], params['influx']['host'])
-        firstTS =  _getDateTS(int(startDate[0]),int(startDate[1]),int(startDate[2]),12,0)
-        startDate = startDate[2]+"/"+startDate[1]+"/"+startDate[0]
+        startDateString = _dayToStr(startDate)
+        logging.info("found last fetch date %s on InfluxDB 'conzo_gaz' on host %s...",
+                     startDateString, params['influx']['host'])
+        firstTS =  startDate.timestamp()
     else :
         logging.warn("GRDF will perhaps has not all data for the last %s days ",args.days)
         startDate = _getStartDate(datetime.date.today(), args.days)
@@ -159,8 +153,8 @@ if __name__ == "__main__":
     for d in resGrdf:
         t = datetime.datetime.strptime(d['date'] + " 12:00", '%d-%m-%Y %H:%M')
         logging.info(("found value : {0:3} kWh / {1:7.2f} m3 at {2}").format(d['kwh'], d['mcube'], t.strftime('%Y-%m-%dT%H:%M:%SZ')))
-        if t.timestamp() > firstTS:
-            logging.info(("value added to jsonInflux as {0} > {1}").format(t.strftime('%Y-%m-%d %H:%M'), datetime.datetime.fromtimestamp(firstTS).strftime('%Y-%m-%d %H:%M')))
+        if t.timestamp() >= firstTS:
+            logging.info(("value added to jsonInflux as {0} >= {1}").format(t.strftime('%Y-%m-%d %H:%M'), datetime.datetime.fromtimestamp(firstTS).strftime('%Y-%m-%d %H:%M')))
             jsonInflux.append({
                            "measurement": "conso_gaz",
                            "tags": {
