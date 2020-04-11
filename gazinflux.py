@@ -154,10 +154,11 @@ if __name__ == "__main__":
             logging.info("get Data from GRDF from {0} to {1}".format(
                 startDateDownload, endDateDownload))
             # Get result from GRDF by day
-            resGrdf.append(gazpar.get_data_per_day(token, _dayToStr(startDateDownload), _dayToStr(endDateDownload)))
+            data = gazpar.get_data_per_day(token, _dayToStr(startDateDownload), _dayToStr(endDateDownload))
+            resGrdf.append(data)
 
             if (args.verbose):
-                pp.pprint(resGrdf)
+                pp.pprint(data)
             
             startDateDownload = startDateDownload + relativedelta(days=12)
             endDateDownload = endDateDownload + relativedelta(days=12)
